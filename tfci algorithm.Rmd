@@ -10,13 +10,19 @@ library(pcalg)
 ```
 
 
-1.Replace circles at “later” variables (if they are connected to earlier) with arrowheads
+1.Replace circles at “later” variables (if they are connected to earlier) with arrowheads (done)
 
 2.Prevent conditioning on “later” variables in all independence tests. Only consider conditioning sets S where S is in past or present.
 
 3.Never replace an arrowhead from step 1 with another mark. An never put an edge “earlier” <--0 or <-- “later”. <--> is ok.
+(done)
 
-4.Modify skeleton to t-skeleton.
+4.Modify skeleton to t-skeleton:
+(1) still thinking how to do that. It seems like the tskeleton in tpc package is customized for tpc algorithm only. For example, it doesn't consider the stable.fast option in "skel.method" parameter.
+(2) Many parameters in skeleton function have been omitted in tskeleton function.
+
+Thoughts:
+(1)Do we need to modify any of the ten rules in tfci function? In the default setting of fci function, the parameter rules = rep(TRUE, 10).
 
 0: No edge
 1: Circle
