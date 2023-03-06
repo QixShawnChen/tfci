@@ -1,0 +1,574 @@
+---
+title: "tfci"
+author: "Qixiang Chen"
+date: "2023-01-30"
+output: pdf_document
+---
+
+```{r}
+library(pcalg)
+```
+
+
+1.Replace circles at “later” variables (if they are connected to earlier) with arrowheads
+
+2.Prevent conditioning on “later” variables in all independence tests. Only consider conditioning sets S where S is in past or present.
+
+3.Never replace an arrowhead from step 1 with another mark. An never put an edge “earlier” <--0 or <-- “later”. <--> is ok.
+
+4.Modify skeleton to t-skeleton.
+
+0: No edge
+1: Circle
+2: Arrowhead
+3: Tail
+
+Test Dataset
+```{r}
+set.seed(123)
+n <- 10000
+X1 <- rnorm(n, 0 , .5)
+X4 <- rnorm(n, 0, 1.4)
+L <- rnorm(n, 0, 0.7)
+X2 <- rnorm(n, -1 + 0.8*X1 + 0.8*L, 1)
+X3 <- rnorm(n, -1 + 2.2*X4 + 1.8*L, 1)
+X5 <- rnorm(n, -1 + 2.8*X4 + 1.7*L, 1)
+X6 <- rnorm(n, -1 + 10.2*X4 + 1.9*L, 1)
+
+data <- cbind(X1,X2,X3,X4,X5,X6) ## L is not observed in data
+
+indepTest <- gaussCItest ## specify the independence test
+suffStat <- list(C = cor(data), n = n) ## using the correlation matrix
+
+fci.est <- fci(suffStat, indepTest, alpha = 0.05, p = 6, verbose=TRUE) ## estimate a PAG
+plot(fci.est)
+
+#pc.est <- pc(suffStat, indepTest, alpha = 0.05, p = 4, verbose=TRUE) ## estimate at CPDAG
+#plot(pc.est)
+
+#score <- new("GaussL0penObsScore", data) ## define a score function
+
+#ges.fit <- ges(score, verbose=TRUE) ## estimate at CPDAG with GES
+#plot(ges.fit$essgraph)
+```
+
+
+
+
+
+
+
+
+```{r}
+tskeleton <- function (suffStat, indepTest, alpha, labels, p,
+                       method = c("stable", "original"), m.max = Inf,
+                       fixedGaps = NULL, fixedEdges = NULL, NAdelete = TRUE,
+                       tiers = NULL, verbose = FALSE) {
+
+     cl <- match.call()
+     if (!missing(p))
+        stopifnot(is.numeric(p), length(p <- as.integer(p)) ==
+                     1, p >= 2)
+     if (missing(labels)) {
+        if (missing(p))
+           stop("need to specify 'labels' or 'p'")
+        labels <- as.character(seq_len(p))
+     }   else {
+        stopifnot(is.character(labels))
+        if (missing(p))
+           p <- length(labels)
+        else if (p != length(labels))
+           stop("'p' is not needed when 'labels' is specified, and must match length(labels)")
+     }
+     seq_p <- seq_len(p)
+     method <- match.arg(method)
+     if (is.null(fixedGaps)) {
+        G <- matrix(TRUE, nrow = p, ncol = p)
+     } else if (!identical(dim(fixedGaps), c(p, p)))
+        stop("Dimensions of the dataset and fixedGaps do not agree.")
+     else if (!identical(fixedGaps, t(fixedGaps)))
+        stop("fixedGaps must be symmetric")
+     else G <- !fixedGaps
+     diag(G) <- FALSE
+     #################################################
+     ## if no tiers are specified, everything is tier 0
+     if (is.null(tiers)) {
+        tiers <- rep(0, p)
+     } else {
+        ## check if 'tiers' are correctly specified
+        if (!is.numeric(tiers)) {stop("'tiers' must be a numeric vector")}
+        if (length(tiers) != p) {stop("length of 'tiers' does not match 'p' or length of 'labels'")}
+     }
+     #################################################
+     if (any(is.null(fixedEdges))) {
+        fixedEdges <- matrix(rep(FALSE, p * p), nrow = p, ncol = p)
+     }
+     else if (!identical(dim(fixedEdges), c(p, p)))
+        stop("Dimensions of the dataset and fixedEdges do not agree.")
+     else if (!identical(fixedEdges, t(fixedEdges)))
+        stop("fixedEdges must be symmetric")
+
+    pval <- NULL
+    # seq_p is just the vector 1:p
+    # sepset is a list of p lists with p elements each,
+    # so each element represents an edge, and each edge is represented twice
+    sepset <- lapply(seq_p, function(.) vector("list", p))
+    # pMax is a matrix with one p-value per edge, at the beginning all p-values
+    # are -Inf
+    pMax <- matrix(-Inf, nrow = p, ncol = p)
+    diag(pMax) <- 1
+    done <- FALSE
+    # ord is the size of the conditioning set
+    ord <- 0L
+    # n.edgetests is for recording how many cond. ind. tests have been conducted
+    # in total
+    n.edgetests <- numeric(1)
+    # G is a (pxp)-matrix (each entry represents an edge and each edge is
+    # represented twice); at the beginning, all elements are TRUE except for the
+    # diagonal
+    while (!done && any(G) && ord <= m.max) {
+      # done is FALSE if for every remaining edge, the number of neighbours is
+      # smaller than the new ord
+       n.edgetests[ord1 <- ord + 1L] <- 0
+       done <- TRUE
+       # ind is a two-column matrix, each row represents an edge (indices of
+       # both endpoints)
+       ind <- which(G, arr.ind = TRUE)
+       # the next command just reorders ind
+       ind <- ind[order(ind[, 1]), ]
+       # how many edges are remaining?
+       remEdges <- nrow(ind)
+       if (verbose)
+          cat("Order=", ord, "; remaining edges:", remEdges,
+              "\n", sep = "")
+       if (method == "stable") {
+         # G is split into p vectors, each vector respresenting the neighbours
+         # of one node
+          G.l <- split(G, gl(p, p))
+       }
+       for (i in 1:remEdges) {
+         # every edge is visited twice, so that each of the endpoints gets to
+         # be the node whose neighbours are considered
+          if (verbose && (verbose >= 2 || i%%100 == 0))
+             cat("|i=", i, "|iMax=", remEdges, "\n")
+          # endpoint 1 of current edge
+          x <- ind[i, 1]
+          # endpoint 2 of current edge
+          y <- ind[i, 2]
+          if (G[y, x] && !fixedEdges[y, x]) {
+             # only edges are considered that are still in the current skeleton
+             # else go to next remaining edge
+             # in nbrsBool, the neighbours of the current node are TRUE
+             nbrsBool <- if (method == "stable")
+                G.l[[x]] #
+             else G[, x]
+             #################################################
+             # this excludes neighbours in a later tier than x from the
+             # conditioning set
+             nbrsBool[tiers > tiers[x]] <- FALSE
+             #################################################
+             nbrsBool[y] <- FALSE
+             # nbrs contains the indices of all eligible neighbours
+             nbrs <- seq_p[nbrsBool]
+             length_nbrs <- length(nbrs)
+             # next steps only possible if there are enough neighbours to form
+             # conditioning sets of cardinality length_nbrs
+             if (length_nbrs >= ord) { #else go to next remaining edge
+                if (length_nbrs > ord)
+                  # done is reset to FALSE if for any node with remaining edges,
+                  # the number of neighbours is at least as large as the order
+                  # that will come next
+                   done <- FALSE
+                S <- seq_len(ord)
+                repeat { # the repeat loop goes over all subsets of the
+                  # neighbours with length ord
+                   n.edgetests[ord1] <- n.edgetests[ord1] +
+                      1
+                   pval <- indepTest(x, y, nbrs[S], suffStat)
+                   if (verbose)
+                      cat("x=", x, " y=", y, " S=", nbrs[S],
+                          ": pval =", pval, "\n")
+                   if (is.na(pval))
+                     pval <- as.numeric(NAdelete)
+                   # pMax is the maximum p-value of all the tests conditioning
+                   # on different subsets of the neighbours
+                   # what is pMax for?
+                   if (pMax[x, y] < pval)
+                      pMax[x, y] <- pval
+                   if (pval >= alpha) {
+                      G[x, y] <- G[y, x] <- FALSE
+                      sepset[[x]][[y]] <- nbrs[S]
+                      break # exit repeat loop (?)
+                   }
+                   else {
+                      # chose ord elements from the neighbours as the new S
+                      nextSet <- getNextSet(length_nbrs, ord,
+                                            S)
+                      if (nextSet$wasLast)
+                         break
+                      S <- nextSet$nextSet
+                   }
+                } # end repeat
+             } # end if
+          } # end if
+       } # end for
+       ord <- ord + 1L
+    }
+    for (i in 1:(p - 1)) {
+       for (j in 2:p) pMax[i, j] <- pMax[j, i] <- max(pMax[i, j], pMax[j, i])
+    }
+   Gobject <- if (sum(G) == 0) {
+      new("graphNEL", nodes = labels)
+   } else {
+      colnames(G) <- rownames(G) <- labels
+      as(G, "graphNEL")
+   }
+   new("pcAlgo", graph = Gobject, call = cl, n = integer(0),
+       max.ord = as.integer(ord - 1), n.edgetests = n.edgetests,
+       sepset = sepset, pMax = pMax, zMin = matrix(NA, 1, 1))
+}
+```
+
+
+
+
+
+
+
+```{r}
+tfci_step1 <- function(suffStat, indepTest, alpha, labels, p,
+                skel.method = c("stable", "original", "stable.fast"),
+                type = c("normal", "anytime", "adaptive"),
+                fixedGaps = NULL, fixedEdges = NULL, NAdelete = TRUE,
+                m.max = Inf, pdsep.max = Inf, rules = rep(TRUE, 10),
+                doPdsep = TRUE, biCC = FALSE, conservative = FALSE,
+                maj.rule = TRUE, numCores = 1, selectionBias = TRUE,
+                jci = c("0","1","12","123"), contextVars = NULL, 
+                verbose = FALSE, 
+                tiers = NULL, context.all = NULL, context.tier = NULL)
+{
+  ## For FCI:
+  ## Purpose: Perform FCI-Algorithm, i.e., estimate PAG
+  ## ----------------------------------------------------------------------
+  ## Arguments:
+  ## - suffStat, indepTest: info for the tests
+  ## - p: number of nodes in the graph
+  ## - alpha: Significance level of individual partial correlation tests
+  ## - verbose: 0 - no output, 1 - detailed output
+  ## - fixedGaps: the adjacency matrix of the graph from which the algorithm
+  ##      should start (logical); gaps fixed here are not changed
+  ## - fixedEdges: Edges marked here are not changed (logical)
+  ## - NAdelete: delete edge if pval=NA (for discrete data)
+  ## - m.max: maximum size of conditioning set
+  ## - pdsep.max: maximaum size of conditioning set for Possible-D-SEP
+  ## - rules: array of length 10 wich contains TRUE or FALSE corresponding
+  ##          to each rule. TRUE means the rule will be applied.
+  ##          If rules==FALSE only R0 (minimal pattern) will be used
+  ## - doPdsep: compute possible dsep
+  ## - biCC: TRUE or FALSE variable containing if biconnected components are
+  ##         used to compute pdsep
+  ## - conservative: TRUE or FALSE defining if
+  ##          the v-structures after the pdsep
+  ##          have to be oriented conservatively or nor
+  ## - maj.rule: TRUE or FALSE variable containing if the majority rule is
+  ##             used instead of the normal conservative
+  ## - labels: names of the variables or nodes
+  ## - type: it specifies the version of the FCI that has to be used.
+  ##         Per default it is normal, the normal FCI algorithm. It can also be
+  ##         anytime for the Anytime FCI and in this cas m.max must be specified;
+  ##         or it can be adaptive for Adaptive Anytime FCI and in this case
+  ##         m.max must not be specified.
+  ## - numCores: handed to skeleton(), used for parallelization
+  ## - selectionBias: allow for selection bias (default: TRUE)
+  ## - jci: specifies the JCI background knowledge that is used; can be either:
+  ##     "0"   no JCI background knowledge (default),
+  ##     "1"   JCI assumption 1 only (i.e., no system variable causes any context variable),
+  ##     "12"  JCI assumptions 1 and 2 (i.e., no system variable causes any context variable,
+  ##           and no system variable is confounded with any context variable),
+  ##     "123" all JCI assumptions 1, 2 and 3
+  ## - contextVars: subset of variable indices that will be treated as context variables
+  ## ----------------------------------------------------------------------
+  ## Author: Markus Kalisch, Date: Dec 2009; update: Diego Colombo, 2012; Martin Maechler, 2013; Joris Mooij, 2020
+
+  cl <- match.call()
+  if(!missing(p)) stopifnot(is.numeric(p), length(p <- as.integer(p)) == 1, p >= 2)
+  if(missing(labels)) {
+    if(missing(p)) stop("need to specify 'labels' or 'p'")
+    labels <- as.character(seq_len(p))
+  } else { ## use labels ==> p  from it
+    stopifnot(is.character(labels))
+    if(missing(p)) {
+      p <- length(labels)
+    } else if(p != length(labels))
+      stop("'p' is not needed when 'labels' is specified, and must match length(labels)")
+    else
+      message("No need to specify 'p', when 'labels' is given")
+  }
+  
+  if (is.null(tiers)) {
+    ## if no tiers are specified, everything is tier 1
+    tiers <- rep(1, p)
+  } else {
+    ## check if 'tiers' are correctly specified
+    if (!is.numeric(tiers)) {stop("'tiers' must be a numeric vector")}
+    if (length(tiers) != p) {stop("length of 'tiers' does not match 'p' or length of 'labels'")}
+  }
+  
+  
+  
+  
+  ##Change1 starts
+  
+  if (!is.null(context.all)) {
+    if (is.character(context.all)) {
+      if (!all(context.all %in% labels)) {stop("'context.all' includes variable names not in 'labels'")}
+      context.all <- which(labels %in% context.all)
+    }
+
+    if (is.numeric(context.all)) {
+      if (!all(context.all %in% (1:p))) {stop("'context.all' contains elements that are smaller than 1 or larger than 'p'")}
+      if (!all(tiers[context.all]==min(tiers))) {stop("'context.all' variables must be in the first tier")}
+    } else {
+      stop("'context.all' must be an integer vector or character vector")
+    }
+  }
+
+  if (!is.null(context.tier)) {
+    if (is.character(context.tier)) {
+      if (!all(context.tier %in% labels)) {stop("'context.tier' includes variable names not in 'labels'")}
+      context.tier <- which(labels %in% context.tier)
+    }
+    if (is.numeric(context.tier)) {
+      if (!all(context.tier %in% 1:p)) {stop("'context.tier' contains elements that are smaller than 1 or larger than 'p'")}
+    } else {
+      stop("'context.tier' must be a numeric or character vector")
+    }
+  }
+
+  if ( !is.null(context.tier) & !is.null(context.all) ) {
+    if (length(intersect(context.tier, context.all)) > 0) {
+      stop(paste("The following variables are in both 'context.tier' and 'context.all': ",
+                 paste(intersect(context.tier, context.all), collapse=",")))
+    }
+  }
+  
+  
+  ##Change1 ends
+  
+  
+  
+  
+  
+
+  ## Check that the type is a valid one
+  type <- match.arg(type)
+  if (type == "anytime" && m.max == Inf)
+    stop("To use the Anytime FCI you must specify a finite 'm.max'.")
+  if (type == "adaptive" && m.max != Inf)
+    stop("To use the Adaptive Anytime FCI you must not specify 'm.max'.")
+
+  if (conservative && maj.rule)
+    stop("Choose either conservative FCI or majority rule FCI")
+  
+  
+  
+  
+  #Change2 starts
+  #Do we really need this step?
+  if ((!conservative) && (!maj.rule))
+    stop("Choose either conservative FCI or majority rule FCI")
+  #Change2 ends
+  
+
+  
+  
+  ## Check that jci background knowledge is valid
+  jci <- match.arg(jci)
+  ## Check whether contextVars is valid
+  if( !is.null(contextVars) && length(contextVars) > 0 ) {
+    if( !is.numeric(contextVars) )
+      stop("contextVars has to be a vector of integers in {1,2,..,p}, where p is the number of variables.")
+    if( !all(sapply(contextVars, function(i) i == as.integer(i))) )
+      stop("contextVars has to be a vector of integers in {1,2,..,p}, where p is the number of variables.")
+    if( min(contextVars) < 1 || max(contextVars) > p )
+      stop("contextVars has to be a vector of integers in {1,2,..,p}, where p is the number of variables.")
+  }
+  ## Set fixed edges from JCI assumption 3 if asked for
+  if( jci == "123" && length(contextVars) > 0 ) {
+    if( any(is.null(fixedEdges)) )
+      fixedEdges<-matrix(FALSE,p,p)
+    fixedEdges[contextVars,contextVars]<-TRUE
+  }
+
+  cl <- match.call()
+  if (verbose) cat("Compute Skeleton\n================\n")
+
+  skel <- tskeleton(suffStat, indepTest, alpha, labels, p,
+                       method = c("stable", "original"), m.max = Inf,
+                       fixedGaps = NULL, fixedEdges = NULL, NAdelete = TRUE,
+                       tiers = NULL, verbose = FALSE)
+  skel@call <- cl # so that makes it into result
+  G <- as(skel@graph, "matrix")
+  sepset <- skel@sepset
+  pMax <- skel@pMax
+  n.edgetestsSKEL <- skel@n.edgetests
+  max.ordSKEL <- skel@max.ord
+  allPdsep <- NA
+  tripleList <- NULL
+
+  if (doPdsep) {
+    if (verbose) cat("\nCompute PDSEP\n=============\n")
+#    pc.ci <- pc.cons.intern(skel, suffStat, indepTest,
+#                            alpha = alpha, version.unf = c(1,1),
+#                            maj.rule = FALSE, verbose = verbose)
+    pc.ci <- list(unfTripl = c(), sk = skel)
+    ## Recompute (sepsets, G, ...):
+    pdsepRes <- pdsep(skel@graph, suffStat, indepTest = indepTest, p = p,
+                      sepset = pc.ci$sk@sepset, alpha = alpha, pMax = pMax,
+                      m.max = if (type == "adaptive") max.ordSKEL else m.max,
+                      pdsep.max = pdsep.max, NAdelete = NAdelete,
+                      unfVect = pc.ci$unfTripl, # "tripleList.pdsep"
+                      biCC = biCC, fixedEdges = fixedEdges, verbose = verbose)
+
+    ## update the graph & sepset :
+    G <- pdsepRes$G
+    sepset <- pdsepRes$sepset
+    pMax <- pdsepRes$pMax
+    allPdsep <- pdsepRes$allPdsep
+    n.edgetestsPD <- pdsepRes$n.edgetests
+    max.ordPD <- pdsepRes$max.ord
+    if (conservative || maj.rule) {
+      if (verbose)
+        cat("\nCheck v-structures conservatively\n=================================\n")
+      tmp.pdsep <- new("pcAlgo", graph = as(G, "graphNEL"), call = cl,
+                       n = integer(0), max.ord = as.integer(max.ordSKEL),
+                       n.edgetests = n.edgetestsSKEL, sepset = sepset,
+                       pMax = pMax, zMin = matrix(NA, 1, 1))
+      sk. <- pc.cons.intern(tmp.pdsep, suffStat, indepTest, alpha,
+                            verbose = verbose, version.unf = c(1, 1),
+                            maj.rule = maj.rule)
+      tripleList <- sk.$unfTripl
+      ## update the sepsets
+      sepset <- sk.$sk@sepset
+    }
+  }
+  else {## !doPdsep : "do not Pdsep"
+    n.edgetestsPD <- 0
+    max.ordPD <- 0
+    allPdsep <- vector("list", p)
+    if (conservative || maj.rule) {
+      if (verbose)
+        cat("\nCheck v-structures conservatively\n=================================\n")
+      nopdsep <- pc.cons.intern(skel, suffStat, indepTest, alpha,
+                                verbose = verbose, version.unf = c(2, 1),
+                                maj.rule = maj.rule)
+      tripleList <- nopdsep$unfTripl
+      ## update the sepsets
+      sepset <- nopdsep$sk@sepset
+    }
+  }
+  if( !selectionBias )
+    rules[5:7] <- FALSE
+  else {
+    if( jci != "0" )
+      stop( 'The current JCI implementation does not support selection bias (use selectionBias=FALSE instead).' )
+  }
+  if (verbose)
+    cat("\nDirect edges:\n=============\nUsing rules:", which(rules),
+        "\nCompute collider:\n")
+  res <- udag2pag(pag = G, sepset, rules = rules, unfVect = tripleList,
+                  jci = jci, contextVars = contextVars, verbose = verbose)
+  colnames(res) <- rownames(res) <- labels
+  
+  for(i in 1:p) {
+    for(j in 1:p) {
+      if(tiers[i] > tiers[j] && res[i, j] == 2 && res[j, i] != 2) {
+        res[i, j] = 0
+        res[j, i] = 0
+      }
+      if(tiers[i] > tiers[j] && res[i, j] == 1 && res[j, i] == 1) {
+        res[j, i] = 2
+      }
+    }
+  }
+  
+  new("fciAlgo", amat = res, call = cl, n = integer(0),
+      max.ord = as.integer(max.ordSKEL),
+      max.ordPDSEP = as.integer(max.ordPD),
+      n.edgetests = n.edgetestsSKEL, n.edgetestsPDSEP = n.edgetestsPD,
+      sepset = sepset, pMax = pMax, allPdsep = allPdsep)
+} ## {fci}
+```
+
+
+
+
+```{r}
+
+
+tfci.trial <- tfci_step1(suffStat, indepTest, alpha = 0.05, p = 6, verbose=TRUE, tiers = c(1, 1, 2, 3, 4, 5)) ## estimate a PAG
+plot(tfci.trial)
+```
+
+Recursive trial:
+```{r}
+alpha1 = 0.05
+indepTest1 = gaussCItest
+fixedGaps = NULL 
+fixedEdges = NULL
+data
+n
+
+for(i in 1:max(tiers)) {
+  tempVars = c()
+  for(j in 1:p) {
+    if(tiers[j] == i) {
+      tempVars = append(j)
+    }
+  }
+  if(i != min(tiers)) {
+    datatemp1 = dataTemp
+    pTemp1 = pTemp
+  }
+  dataTemp = data[, tempVars]
+  pTemp = length(tempVars)
+  
+  if(i != min(tiers)) {
+    dataTemp = merge(dataTemp1, dataTemp)
+    pTemp = c(pTemp1, pTemp)
+  }
+  suffStat_temp = list(cor(dataTemp), n = n)
+  fci_temp <- fci(suffStat_temp, indepTest1, alpha = alpha1, p = pTemp, fixedGaps = fixedGaps, 
+                  fixedEdges = fixedEdges, verbose=TRUE)
+  
+  #The edges and gaps established in the current time interval will be fixed in the next time interval.
+  fixedGaps = matrix(FALSE, pTemp, pTemp)
+  fixedEdges = matrix(FALSE, pTemp, pTemp) #There are 4 types of head of edge in fci algorithm
+  
+  #The fixed gaps for the next time interval
+  for(i in 1:pTemp1) {
+    for(j in 1:pTemp1) {
+      if(fci_temp@amat[i, j] == 0 && fci_temp@amat[j, i] == 0) {
+        fixedGaps[i, j] = TRUE
+        fixedGaps[j, i] = TRUE
+      }
+    }
+  }
+  
+  #The fixed edges for the next time interval (Need a modification in this part)
+  for(i in 1:pTemp1) {
+    for(j in 1:pTemp1) {
+      if(fci_temp@amat[i, j] != 0 && fci_temp@amat[j, i] != 0) {
+        fixedGaps[i, j] = TRUE
+        fixedGaps[j, i] = TRUE
+      }
+    }
+  }
+  
+}
+```
+
+
+
+
+
