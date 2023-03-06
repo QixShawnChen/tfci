@@ -516,7 +516,7 @@ tfci.trial <- tfci_step1(suffStat, indepTest, alpha = 0.05, p = 6, verbose=TRUE,
 plot(tfci.trial)
 ```
 
-Recursive trial:
+Recursive trial:(In progress)
 ```{r}
 alpha1 = 0.05
 indepTest1 = gaussCItest
