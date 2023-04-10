@@ -342,10 +342,12 @@ change pdsep to "t-pdsep" (In progress)
  Need to check if the possible d-seps follow the temporal rules: trying to add a "tier" parameter to work as a control rule.
  All comments with initial qc: are set for the convenience of my program, which will be deleted later.
  
- *Need sometime to read FCI again to make correct modifications.
+
  
- Need to write a program to avoid some specific d-sep.
+ Need to write a program to avoid some specific d-sep. (In progress)
  (1)Type 1, conditioning set containing vertices in future tiers.
+ 
+  *Need sometime to read FCI again to make correct modifications for the collider things.
 ```{r}
 
 ## only called in fci() [by default:  doPdsep=TRUE]
