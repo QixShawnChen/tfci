@@ -1,0 +1,16 @@
+The modification made:
+
+1. fci() -> tfci():
+	1. The original function is 'tpc()' from package tpc.R. 
+	2. Change1: added a 'tier' parameter into the function. (869-905)
+	3. (In Progress) Change2: Whether it is necessary to always use one of the conservative and maj.rule. (line 925-929)
+	4. Change3: change the 'pdsep()' into 'tpdsep()' inside the program. (line 955)
+	5. Change4: (Maybe) need a change 'pdsep()' to 'tpdsep()'. (line 975)
+
+2. pdsep() -> tpdsep():
+	1. The original function is 'pdsep()' from package pcalg.R.
+	2. (In progress) Change1: Need to write a program to further exclude the impossible d-seps.
+		Basically I am trying to add a parameter 'tiers'. It is a vector assigning a tier number for each node in the graph. 
+	3. Change2: the 'biCC' parameter and the its related code in the function have been invalidated. 
+
+3. tskeleton() was the original function from the package tpc.R. Its original version was 'skeleton()' from package pcalg.R.
