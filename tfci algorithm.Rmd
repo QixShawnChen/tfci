@@ -56,15 +56,20 @@ plot(fci.est)
 ```
 
 
-TODO: qreach needs a modification 
+TODO: qreach needs a modification (to contain a 'tier' parameter)
+
+ - amat: adjacency matrix
+amat[i,j] = 0 iff no edge btw i,j
+amat[i,j] = 1 iff i *-o j
+amat[i,j] = 2 iff i *-> j
 ```{r}
 qreach <- function(x,amat,verbose = FALSE)
 {
-  ## Purpose: Compute possible-d-sep(x) ("psep")
+  ## Purpose: Compute possible-d-sep(x) ("pdsep")
   ## !! The non-zero entries in amat must be symmetric !!
   ## ----------------------------------------------------------------------
   ## Arguments:
-  ## - x: node of which psep berechnet werden soll
+  ## - x: node of which pdsep berechnet werden soll
   ## - amat: adjacency matrix
   ##         amat[i,j] = 0 iff no edge btw i,j
   ##         amat[i,j] = 1 iff i *-o j
@@ -74,7 +79,7 @@ qreach <- function(x,amat,verbose = FALSE)
   ## Author: Markus Kalisch, Date: 29 Oct 2009, 11:54
   ## Stopping:
   ## =========
-  ## At every iteration, Q get's reduced by one. It is only increased by
+  ## At every iteration, Q get's re44duced by one. It is only increased by
   ## at least one, if there are edges in A. and then, at least one
   ## edge in A. is removed. Edges are never inserted into A..
   ## Thus, either Q or A. becomes empty and the loop stops.
@@ -103,8 +108,7 @@ qreach <- function(x,amat,verbose = FALSE)
   ## to PSEP. This is a contradiction to the assumption that w is not in PSEP.
 
   ## check: quadratic; x in V; edgemarks ok; non-zeroes symmetric
-  stopifnot((ncol(amat) == nrow(amat)),x <= ncol(amat),all(amat %in% c(0,1,2)),
-            all((amat != 0) == (t(amat != 0))))
+  stopifnot((ncol(amat) == nrow(amat)),x <= ncol(amat),all(amat %in% c(0,1,2)), all((amat != 0) == (t(amat != 0))))
 
   A. <- (amat != 0) ## A.[i,j] is true  <===>  edge i--j
   PSEP <- Q <- nb <- which(A.[x,])
@@ -342,12 +346,8 @@ change pdsep to "t-pdsep" (In progress)
  Need to check if the possible d-seps follow the temporal rules: trying to add a "tier" parameter to work as a control rule.
  All comments with initial qc: are set for the convenience of my program, which will be deleted later.
  
-
- 
- Need to write a program to avoid some specific d-sep. (In progress)
+ Need to write a program to avoid some specific d-sep.
  (1)Type 1, conditioning set containing vertices in future tiers.
- 
-  *Need sometime to read FCI again to make correct modifications for the collider things.
 ```{r}
 
 ## only called in fci() [by default:  doPdsep=TRUE]
@@ -355,13 +355,14 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
                    pdsep.max = Inf, NAdelete = TRUE, unfVect = NULL,
                    #biCC = FALSE, 
                    fixedEdges = NULL, 
-                   verbose = FALSE) ## FIXME: verbose : 2 --> qreach(verbose)
+                   verbose = FALSE,
+                   tiers = NULL ) ## FIXME: verbose : 2 --> qreach(verbose)
 {
   ## Purpose: Compute Possible-D-SEP for each node, perform the conditional
   ##          independent tests and adapt graph accordingly
   ## ----------------------------------------------------------------------
   ## Arguments:
-  ## - skel: Graph object returned by function skeleton
+  ## - skel: Graph object returned by function skeleton   ****************************************
   ## - suffStat, indepTest: info for the independence tests
   ## - p: number of nodes in the graph
   ## - sepset: Sepset that was used for finding the skeleton
@@ -733,7 +734,7 @@ tskeleton <- function (suffStat, indepTest, alpha, labels, p,
 
 
 
-1. Need to modify the "legal" to "t-legal"; (In progress)
+1. Need to modify the "legal" to "t-legal"; (In progress) **stuck in this step
 ```{r}
 legal.pdsep <- function(r,s) {
     ## Modifying global 'edgeslist'
@@ -779,6 +780,8 @@ Question:
 
 TODO:
 Need to merge the "tskeleton" and "tdsep" into the function. Check if all the function names have been changed.
+
+maj.rule default will be set to false
 
 ```{r}
 tfci_step1 <- function(suffStat, indepTest, alpha, labels, p,
@@ -921,7 +924,7 @@ tfci_step1 <- function(suffStat, indepTest, alpha, labels, p,
   
   #Change2 starts
   #Do we really need this step?
-  if ((!conservative) && (!maj.rule))
+  if ((conservative) && (maj.rule))
     stop("Choose either conservative FCI or majority rule FCI")
   #Change2 ends
   
@@ -1128,7 +1131,6 @@ for(i in 1:max(tiers)) {
   
 }
 ```
-
 
 
 
