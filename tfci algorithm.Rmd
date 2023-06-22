@@ -784,7 +784,7 @@ Need to merge the "tskeleton" and "tdsep" into the function. Check if all the fu
 maj.rule default will be set to false
 
 ```{r}
-tfci_step1 <- function(suffStat, indepTest, alpha, labels, p,
+tfci <- function(suffStat, indepTest, alpha, labels, p,
                 skel.method = c("stable", "original"),
                 type = c("normal", "anytime", "adaptive"),
                 fixedGaps = NULL, fixedEdges = NULL, NAdelete = TRUE,
@@ -1055,7 +1055,7 @@ tfci_step1 <- function(suffStat, indepTest, alpha, labels, p,
 ```{r}
 
 
-tfci.trial <- tfci_step1(suffStat, indepTest, alpha = 0.05, p = 6, verbose=TRUE, tiers = c(1, 1, 2, 3, 4, 5)) ## estimate a PAG
+tfci.trial <- tfci(suffStat, indepTest, alpha = 0.05, p = 6, verbose=TRUE, tiers = c(1, 1, 2, 3, 4, 5)) ## estimate a PAG
 plot(tfci.trial)
 ```
 
