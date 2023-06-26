@@ -356,7 +356,7 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
                    #biCC = FALSE, 
                    fixedEdges = NULL, 
                    verbose = FALSE,
-                   tiers = NULL ) ## FIXME: verbose : 2 --> qreach(verbose)
+                   tiers = NULL) ## FIXME: verbose : 2 --> qreach(verbose)
 {
   ## Purpose: Compute Possible-D-SEP for each node, perform the conditional
   ##          independent tests and adapt graph accordingly
@@ -383,7 +383,20 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
   ## ----------------------------------------------------------------------
   ## Author: Markus Kalisch, Date:  9 Dec 2009
   ## Modification: Diego Colombo; Martin Maechler; Joris Mooij
-
+  
+  ##change1 starts
+  ################################################# adding the step to guarantee the input of tiers parameter is valid.
+     ## if no tiers are specified, everything is tier 0
+     if (is.null(tiers)) {
+        tiers <- rep(0, p)
+     } else {
+        ## check if 'tiers' are correctly specified
+        if (!is.numeric(tiers)) {stop("'tiers' must be a numeric vector")}
+        if (length(tiers) != p) {stop("length of 'tiers' does not match 'p' or length of 'labels'")}
+     }
+     #################################################
+  ##change1 ends
+  
   G <- (as(skel, "matrix") != 0)
   n.edgetests <- rep(0, 1000)
   ord <- 0L
@@ -430,6 +443,7 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
         }
       } ## for( z )
     } ## for( i  )
+    
     allPdsep <- lapply(1:p, qreach, amat = amat)# verbose = (verbose >= 2)
     allPdsep.tmp <- vector("list", p)
     for(x in seq_len(p)) {
@@ -442,7 +456,19 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
             if(verbose) cat(sprintf("\ny = %3d\n.........\n", y))
             tf <- setdiff(tf1, y)
             diff.set <- setdiff(tf, adj.x)
+          
             
+            ##------------ change2 starts
+            
+            tiers.diff.set = tiers
+            vertices_vec = seq(1, p)
+            vertices_non = setdiff(vertices_vec, diff.set)  ##the step is to find vertices not in diff.set
+            for(i in vertices_non) {  ##the step is to change the 'tiers' value(s) of the non-existing element to NULL.
+              tiers.diff.set[i] = NULL
+            }
+             
+            #Still need to consider what if all the values in vector tiers.diff.set are NULL.
+            ##------------ change2 ends
             
             
             ## bi-connected components
@@ -478,6 +504,13 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
                 if(verbose) cat("ord = ", ord, "\n")
                 if (ord == 1) {
                   for (S in diff.set) {
+                    ##---------------------  change3 starts
+                    
+                    if(max(tiers.diff.set) > max(tiers[x], tiers[y])) { #skip the situation when max tiers in diff.set is greater than the maximum of tiers values of vertex X and vertex Y.
+                      next
+                    }
+                    
+                    ##---------------------  change3 ends
                     pval <- indepTest(x, y, S, suffStat)
                     n.edgetests[ord + 1] <- n.edgetests[ord + 1] + 1
                     if (is.na(pval))
@@ -784,7 +817,7 @@ Need to merge the "tskeleton" and "tdsep" into the function. Check if all the fu
 maj.rule default will be set to false
 
 ```{r}
-tfci <- function(suffStat, indepTest, alpha, labels, p,
+tfci_step1 <- function(suffStat, indepTest, alpha, labels, p,
                 skel.method = c("stable", "original"),
                 type = c("normal", "anytime", "adaptive"),
                 fixedGaps = NULL, fixedEdges = NULL, NAdelete = TRUE,
@@ -1055,7 +1088,7 @@ tfci <- function(suffStat, indepTest, alpha, labels, p,
 ```{r}
 
 
-tfci.trial <- tfci(suffStat, indepTest, alpha = 0.05, p = 6, verbose=TRUE, tiers = c(1, 1, 2, 3, 4, 5)) ## estimate a PAG
+tfci.trial <- tfci_step1(suffStat, indepTest, alpha = 0.05, p = 6, verbose=TRUE, tiers = c(1, 1, 2, 3, 4, 5)) ## estimate a PAG
 plot(tfci.trial)
 ```
 
@@ -1131,6 +1164,7 @@ for(i in 1:max(tiers)) {
   
 }
 ```
+
 
 
 
