@@ -3,7 +3,8 @@
 1. fci() -> tfci():
 	1. The original function is 'tpc()' from package tpc.R. 
 	2. Change1: added a 'tier' parameter into the function. (916-952)
-	3. (In Progress) Change2: Whether it is necessary to always use one of the conservative and 		maj.rule. (line 972-976)
+	3. (In Progress) Change2: Whether it is necessary to always use one of the conservative and
+ 		maj.rule. (line 972-976)
 	4. Change3: change the 'pdsep()' into 'tpdsep()' inside the program. (line 1022)
 	6. Change4: (Line 1065-1073)
 
@@ -12,19 +13,29 @@
 	2. Change1: Added a 'tiers' parameter as a vector. Wrote a program to guarantee
 		the input of 'tiers' vector is valid. (Line 373-384)
 
-	3. Change2: In this step. It is trying to figure out the vertices which are not in the vector 		diff.set. Create a vector named 'tiers.diff.set' as a proxy vector. Then, change the 		tier values of the non-existing vertices to '-1' (tried changing to NULL, but a legal 		syntax in R). An arrangement has been made for tier vector (NULL, NULL, NULL, ..., 		NULL), if a 'tiers.diffset' consists of NULL elements only, it will be skipped (Line 		457-471).
+	3. Change2: In this step. It is trying to figure out the vertices which are not in the vector
+ 		diff.set. Create a vector named 'tiers.diff.set' as a proxy vector. Then, change the
+ 		tier values of the non-existing vertices to '-1' (tried changing to NULL, but a legal
+ 		syntax in R). An arrangement has been made for tier vector (NULL, NULL, NULL, ...,
+ 		NULL), if a 'tiers.diffset' consists of NULL elements only, it will be skipped (Line
+ 		457-471).
 
 
-	4. Change3: The program is to skip the situation that max tier values in 'diff.set' is 			greater than the maximum between vertex X and vertex Y. Since there are 3 different 		'ord', the change should be applied to all the 3 different 'ord's'
+	4. Change3: The program is to skip the situation that max tier values in 'diff.set' is 
+		greater than the maximum between vertex X and vertex Y. Since there are 3 different
+ 		'ord', the change should be applied to all the 3 different 'ord's'
 		(Change3-1: Line 508-514)
 		(Change3-2: Line 540-546)
 		(Change3-3: Line 570-576)
 
 	*********(Not Sure if the change in this part is correct or Not Yet)**********
 	 
-	5. Change4: The 'biCC' parameter and the its related code in the function have been 			invalidated. (Line 474-488)
+	5. Change4: The 'biCC' parameter and the its related code in the function have been
+ 		invalidated. (Line 474-488)
 
-	6. Change5: If j is future to I, and there is an edge between i and j, change the head from I 		to j to 2, and mark of edge on i side to 1. The modification should be done before 		allpdsep <- lapply().(Line 406-414)
+	6. Change5: If j is future to I, and there is an edge between i and j, change the head from I
+ 		to j to 2, and mark of edge on i side to 1. The modification should be done before
+ 		allpdsep <- lapply().(Line 406-414)
 
 
 3. tskeleton() was the original function from the package tpc.R. Its original version was 'skeleton()' from package pcalg.R.
