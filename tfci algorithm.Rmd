@@ -11,15 +11,10 @@ library(pcalg)
 
 
 1.Replace circles at “later” variables (if they are connected to earlier) with arrowheads
-
 2.Prevent conditioning on “later” variables in all independence tests. Only consider conditioning sets S where S is in past or present.
-
 3.Never replace an arrowhead from step 1 with another mark. An never put an edge “earlier” <--0 or <-- “later”. <--> is ok.
-
 4.Modify skeleton to t-skeleton in tfci algorithm.
-
 6.modify the pdsep to tpdsep. Mark biCC parameter 
-
 
 0: No edge
 1: Circle
@@ -27,16 +22,17 @@ library(pcalg)
 3: Tail
 
 Test Dataset
+
 ```{r}
-set.seed(123)
+set.seed(1234)
 n <- 10000
 X1 <- rnorm(n, 0 , .5)
 X4 <- rnorm(n, 0, 1.4)
 L <- rnorm(n, 0, 0.7)
-X2 <- rnorm(n, -1 + 0.8*X1 + 0.8*L, 1)
-X3 <- rnorm(n, -1 + 2.2*X4 + 1.8*L, 1)
+X2 <- rnorm(n, -1 + 0.9*X1 + 0.8*L, 1)
+X3 <- rnorm(n, -1 + 2.8*X4 + 1.9*L, 1)
 X5 <- rnorm(n, -1 + 2.8*X4 + 1.7*L, 1)
-X6 <- rnorm(n, -1 + 10.2*X4 + 1.9*L, 1)
+X6 <- rnorm(n, -1 + 17.2*X4 + 1.2*L, 1)
 
 data <- cbind(X1,X2,X3,X4,X5,X6) ## L is not observed in data
 
@@ -55,13 +51,12 @@ plot(fci.est)
 #plot(ges.fit$essgraph)
 ```
 
-
 TODO: qreach needs a modification (to contain a 'tier' parameter)
 
- - amat: adjacency matrix
-amat[i,j] = 0 iff no edge btw i,j
-amat[i,j] = 1 iff i *-o j
-amat[i,j] = 2 iff i *-> j
+-   amat: adjacency matrix amat[i,j] = 0 iff no edge btw i,j 
+amat[i,j] = 1 iff i *-o j 
+amat[i,j] = 2 iff i* -> j
+
 ```{r}
 qreach <- function(x,amat,verbose = FALSE)
 {
@@ -335,21 +330,12 @@ qreach <- function(x,amat,verbose = FALSE)
 # } ## {pdsep}
 ```
 
+change pdsep to "t-pdsep" (In progress) Mark biCC parameter done Need to check if the possible d-seps follow the temporal rules: trying to add a "tier" parameter to work as a control rule. All comments with initial qc: are set for the convenience of my program, which will be deleted later.
 
+Need to write a program to avoid some specific d-sep. (1)Type 1, conditioning set containing vertices in future tiers.
 
-
-
-
-
-change pdsep to "t-pdsep" (In progress)
- Mark biCC parameter             done
- Need to check if the possible d-seps follow the temporal rules: trying to add a "tier" parameter to work as a control rule.
- All comments with initial qc: are set for the convenience of my program, which will be deleted later.
- 
- Need to write a program to avoid some specific d-sep.
- (1)Type 1, conditioning set containing vertices in future tiers.
 ```{r}
-
+#**The elements of input 'tiers' should be greater than 0.
 ## only called in fci() [by default:  doPdsep=TRUE]
 tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = Inf,
                    pdsep.max = Inf, NAdelete = TRUE, unfVect = NULL,
@@ -417,6 +403,16 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
     amat <- G
     ind <- which(G, arr.ind = TRUE)       #qc: The which() will return the position where the elements are True in G.
     storage.mode(amat) <- "integer" # (TRUE, FALSE) -->  (1, 0)
+    #-------------change 5 starts
+    ### INSERT 2 AT amat[j,i] WHEREVER THERE IS AN EDGE CONNECTING FUTURE at j TO PAST at i ###
+    for(i in 1:p) {
+      for(j in 1:i) if(amat[i,j] == 1 && tiers[j] > tiers[i]) { 
+        amat[i,j] <- 2
+        amat[j,i] <- 1
+      }
+    }
+    #------------change5 ends
+    
     ## Orient colliders
     if (verbose) cat("\nCompute collider:\n")
     for (i in seq_len(nrow(ind))) {
@@ -444,7 +440,7 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
       } ## for( z )
     } ## for( i  )
     
-    allPdsep <- lapply(1:p, qreach, amat = amat)# verbose = (verbose >= 2)
+    allPdsep <- lapply(1:p, qreach, amat = amat)# verbose = (verbose >= 2) ## NEED TO ORIENT FUTURE/PAST + COLLIDERS BEFORE ENTERING THIS STEP ##
     allPdsep.tmp <- vector("list", p)
     for(x in seq_len(p)) {
       if(verbose) cat("\nPossible D-Sep of", x, "is:", allPdsep[[x]], "\n")
@@ -463,11 +459,15 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
             tiers.diff.set = tiers
             vertices_vec = seq(1, p)
             vertices_non = setdiff(vertices_vec, diff.set)  ##the step is to find vertices not in diff.set
-            for(i in vertices_non) {  ##the step is to change the 'tiers' value(s) of the non-existing element to NULL.
-              tiers.diff.set[i] = NULL
+            for(i in vertices_non) {  ##the step is to change the 'tiers' value(s) of the non-existing element to -1
+              tiers.diff.set[i] = -1
             }
-             
-            #Still need to consider what if all the values in vector tiers.diff.set are NULL.
+            
+            if(all(tiers.diff.set == -1)) {
+              next       ##if all elements are -1, that means all the vertices in conditioning set are in the future.
+            }
+            #need to consider what if all the values in vector tiers.diff.set are NULL.
+            
             ##------------ change2 ends
             
             
@@ -504,13 +504,15 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
                 if(verbose) cat("ord = ", ord, "\n")
                 if (ord == 1) {
                   for (S in diff.set) {
-                    ##---------------------  change3 starts
+                    
+                    ##---------------------  change3—1 starts
                     
                     if(max(tiers.diff.set) > max(tiers[x], tiers[y])) { #skip the situation when max tiers in diff.set is greater than the maximum of tiers values of vertex X and vertex Y.
                       next
                     }
                     
-                    ##---------------------  change3 ends
+                    ##---------------------  change3-1 ends
+                    
                     pval <- indepTest(x, y, S, suffStat)
                     n.edgetests[ord + 1] <- n.edgetests[ord + 1] + 1
                     if (is.na(pval))
@@ -534,6 +536,15 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
                       S <- tmp.combn[, k]
                       if (!all(S %in% adj.x)) {
                         n.edgetests[ord + 1] <- n.edgetests[ord + 1] + 1
+                        
+                        ##---------------------  change3-2 starts
+                    
+                        if(max(tiers.diff.set) > max(tiers[x], tiers[y])) { #skip the situation when max tiers in diff.set is                               greater than the maximum of tiers values of vertex X and vertex Y.
+                          next
+                          }
+                    
+                        ##---------------------  change3-2 ends
+                        
                         pval <- indepTest(x, y, S, suffStat)
                         if (is.na(pval))
                           pval <- as.numeric(NAdelete) ## = if(NAdelete) 1 else 0
@@ -555,6 +566,15 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
                     for (k in seq_len(ncol(tmp.combn))) {
                       S <- tmp.combn[, k]
                       n.edgetests[ord + 1] <- n.edgetests[ord + 1] + 1
+                      
+                      ##---------------------  change3-3 starts
+                    
+                      if(max(tiers.diff.set) > max(tiers[x], tiers[y])) { #skip the situation when max tiers in diff.set is                           greater than the maximum of tiers values of vertex X and vertex Y.
+                        next
+                        }
+                    
+                      ##---------------------  change3-3 ends
+                      
                       pval <- indepTest(x, y, S, suffStat)
                       if (is.na(pval))
                         pval <- as.numeric(NAdelete) ## = if(NAdelete) 1 else 0
@@ -590,9 +610,6 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
        max.ord = ord, n.edgetests = n.edgetests[1:(ord + 1)])
 } ## {pdsep}
 ```
-
-
-
 
 
 
@@ -767,7 +784,11 @@ tskeleton <- function (suffStat, indepTest, alpha, labels, p,
 
 
 
-1. Need to modify the "legal" to "t-legal"; (In progress) **stuck in this step
+
+
+
+1.  Need to modify the "legal" to "t-legal"; (In progress) \*\*stuck in this step
+
 ```{r}
 legal.pdsep <- function(r,s) {
     ## Modifying global 'edgeslist'
@@ -803,21 +824,14 @@ legal.path <- function(a,b,c, amat)
 }
 ```
 
+Question: 1. Do we also need to cancel the parameter "BICC" in tfcti()? 2. TPC algorithm didn't remove the maj.rule and conservative, do we really need to exclude them?
 
-
-
-Question: 
-1. Do we also need to cancel the parameter "BICC" in tfcti()?
-2. TPC algorithm didn't remove the maj.rule and conservative, do we really need to exclude them?
-
-
-TODO:
-Need to merge the "tskeleton" and "tdsep" into the function. Check if all the function names have been changed.
+TODO: Need to merge the "tskeleton" and "tdsep" into the function. Check if all the function names have been changed.
 
 maj.rule default will be set to false
 
 ```{r}
-tfci_step1 <- function(suffStat, indepTest, alpha, labels, p,
+tfci <- function(suffStat, indepTest, alpha, labels, p,
                 skel.method = c("stable", "original"),
                 type = c("normal", "anytime", "adaptive"),
                 fixedGaps = NULL, fixedEdges = NULL, NAdelete = TRUE,
@@ -999,18 +1013,18 @@ tfci_step1 <- function(suffStat, indepTest, alpha, labels, p,
   tripleList <- NULL
 
   if (doPdsep) {
-    if (verbose) cat("\nCompute PDSEP\n=============\n")
+    if (verbose) cat("\nCompute tPDSEP\n=============\n")
 #    pc.ci <- pc.cons.intern(skel, suffStat, indepTest,
 #                            alpha = alpha, version.unf = c(1,1),
 #                            maj.rule = FALSE, verbose = verbose)
     pc.ci <- list(unfTripl = c(), sk = skel)
     ## Recompute (sepsets, G, ...):
-    pdsepRes <- pdsep(skel@graph, suffStat, indepTest = indepTest, p = p,
+    pdsepRes <- tpdsep(skel@graph, suffStat, indepTest = indepTest, p = p,
                       sepset = pc.ci$sk@sepset, alpha = alpha, pMax = pMax,
                       m.max = if (type == "adaptive") max.ordSKEL else m.max,
                       pdsep.max = pdsep.max, NAdelete = NAdelete,
                       unfVect = pc.ci$unfTripl, # "tripleList.pdsep"
-                      biCC = biCC, fixedEdges = fixedEdges, verbose = verbose)
+                      fixedEdges = fixedEdges, verbose = verbose, tiers = tiers)
 
     ## update the graph & sepset :
     G <- pdsepRes$G
@@ -1047,6 +1061,16 @@ tfci_step1 <- function(suffStat, indepTest, alpha, labels, p,
       tripleList <- nopdsep$unfTripl
       ## update the sepsets
       sepset <- nopdsep$sk@sepset
+      
+      #------------change4 starts
+      ### INSERT 2 AT amat[j,i] WHEREVER THERE IS AN EDGE CONNECTING FUTURE at j TO PAST at i ###
+      storage.mode(G) <- "integer" # (TRUE, FALSE) -->  (1, 0)
+      for(i in 1:p) for(j in 1:i) if(G[i,j]==1 && tiers[j] > tiers[i]) { 
+        G[i,j] <- 2
+        G[j,i] <- 1
+      }
+      ##################
+      #------------change4 ends
     }
   }
   if( !selectionBias )
@@ -1062,17 +1086,6 @@ tfci_step1 <- function(suffStat, indepTest, alpha, labels, p,
                   jci = jci, contextVars = contextVars, verbose = verbose)
   colnames(res) <- rownames(res) <- labels
   
-  for(i in 1:p) {
-    for(j in 1:p) {
-      if(tiers[i] > tiers[j] && res[i, j] == 2 && res[j, i] != 2) {
-        res[i, j] = 0
-        res[j, i] = 0
-      }
-      if(tiers[i] > tiers[j] && res[i, j] == 1 && res[j, i] == 1) {
-        res[j, i] = 2
-      }
-    }
-  }
   
   new("fciAlgo", amat = res, call = cl, n = integer(0),
       max.ord = as.integer(max.ordSKEL),
@@ -1085,10 +1098,13 @@ tfci_step1 <- function(suffStat, indepTest, alpha, labels, p,
 
 
 
+
+
+
 ```{r}
 
 
-tfci.trial <- tfci_step1(suffStat, indepTest, alpha = 0.05, p = 6, verbose=TRUE, tiers = c(1, 1, 2, 3, 4, 5)) ## estimate a PAG
+tfci.trial <- tfci(suffStat, indepTest, alpha = 0.05, p = 6, verbose=TRUE, tiers = c(3, 2, 2, 2, 2, 1)) ## estimate a PAG
 plot(tfci.trial)
 ```
 
@@ -1100,72 +1116,61 @@ plot(tfci.trial)
 
 
 
-
-
-
-
-
-
-
 Recursive trial:
-```{r}
-alpha1 = 0.05
-indepTest1 = gaussCItest
-fixedGaps = NULL 
-fixedEdges = NULL
-data
-n
 
-for(i in 1:max(tiers)) {
-  tempVars = c()
-  for(j in 1:p) {
-    if(tiers[j] == i) {
-      tempVars = append(j)
-    }
-  }
-  if(i != min(tiers)) {
-    datatemp1 = dataTemp
-    pTemp1 = pTemp
-  }
-  dataTemp = data[, tempVars]
-  pTemp = length(tempVars)
+```{r}
+#alpha1 = 0.05
+#indepTest1 = gaussCItest
+#fixedGaps = NULL 
+#fixedEdges = NULL
+#data
+#n
+
+#for(i in 1:max(tiers)) {
+#  tempVars = c()
+#  for(j in 1:p) {
+#    if(tiers[j] == i) {
+#      tempVars = append(j)
+#    }
+#  }
+#  if(i != min(tiers)) {
+#    datatemp1 = dataTemp
+#    pTemp1 = pTemp
+#  }
+#  dataTemp = data[, tempVars]
+#  pTemp = length(tempVars)
   
-  if(i != min(tiers)) {
-    dataTemp = merge(dataTemp1, dataTemp)
-    pTemp = c(pTemp1, pTemp)
-  }
-  suffStat_temp = list(cor(dataTemp), n = n)
-  fci_temp <- fci(suffStat_temp, indepTest1, alpha = alpha1, p = pTemp, fixedGaps = fixedGaps, 
-                  fixedEdges = fixedEdges, verbose=TRUE)
+#  if(i != min(tiers)) {
+#    dataTemp = merge(dataTemp1, dataTemp)
+#    pTemp = c(pTemp1, pTemp)
+#  }
+#  suffStat_temp = list(cor(dataTemp), n = n)
+#  fci_temp <- fci(suffStat_temp, indepTest1, alpha = alpha1, p = pTemp, fixedGaps = fixedGaps, 
+#                  fixedEdges = fixedEdges, verbose=TRUE)
   
   #The edges and gaps established in the current time interval will be fixed in the next time interval.
-  fixedGaps = matrix(FALSE, pTemp, pTemp)
-  fixedEdges = matrix(FALSE, pTemp, pTemp) #There are 4 types of head of edge in fci algorithm
+#  fixedGaps = matrix(FALSE, pTemp, pTemp)
+#  fixedEdges = matrix(FALSE, pTemp, pTemp) #There are 4 types of head of edge in fci algorithm
   
   #The fixed gaps for the next time interval
-  for(i in 1:pTemp1) {
-    for(j in 1:pTemp1) {
-      if(fci_temp@amat[i, j] == 0 && fci_temp@amat[j, i] == 0) {
-        fixedGaps[i, j] = TRUE
-        fixedGaps[j, i] = TRUE
-      }
-    }
-  }
+#  for(i in 1:pTemp1) {
+#    for(j in 1:pTemp1) {
+#      if(fci_temp@amat[i, j] == 0 && fci_temp@amat[j, i] == 0) {
+#       fixedGaps[i, j] = TRUE
+#        fixedGaps[j, i] = TRUE
+#      }
+#    }
+#  }
   
   #The fixed edges for the next time interval (Need a modification in this part)
-  for(i in 1:pTemp1) {
-    for(j in 1:pTemp1) {
-      if(fci_temp@amat[i, j] != 0 && fci_temp@amat[j, i] != 0) {
-        fixedGaps[i, j] = TRUE
-        fixedGaps[j, i] = TRUE
-      }
-    }
-  }
+#  for(i in 1:pTemp1) {
+#    for(j in 1:pTemp1) {
+#      if(fci_temp@amat[i, j] != 0 && fci_temp@amat[j, i] != 0) {
+#        fixedGaps[i, j] = TRUE
+#        fixedGaps[j, i] = TRUE
+#      }
+#    }
+#  }
   
-}
+#}
 ```
-
-
-
-
-
