@@ -28,18 +28,29 @@ set.seed(1234)
 n <- 10000
 X1 <- rnorm(n, 0 , .5)
 X4 <- rnorm(n, 0, 1.4)
-L <- rnorm(n, 0, 0.7)
-X2 <- rnorm(n, -1 + 0.9*X1 + 0.8*L, 1)
-X3 <- rnorm(n, -1 + 2.8*X4 + 1.9*L, 1)
-X5 <- rnorm(n, -1 + 2.8*X4 + 1.7*L, 1)
-X6 <- rnorm(n, -1 + 17.2*X4 + 1.2*L, 1)
+L1 <- rnorm(n, 0, 0.7)
+L2 <- rnorm(n, 0, 1.5)
+L3 <- rnorm(n, 0, 3.7)
+X2 <- rnorm(n, 1 + 0.9*X1 + 0.8*L1, 1)
+X3 <- rnorm(n, -3 + 2.8*X4 + 1.9*L2, 1)
+X5 <- rnorm(n, 1 - 2.8*X2 + 1.7*L1, 1)
+X6 <- rnorm(n, -1 - 7.2*X4 + 1.2*L3, 1)
+X7 <- rnorm(n, -6 - 2.2*X2 + 1.2*L2, 1)
+X8 <- rnorm(n, -1 - 9.1*X7 + 1.2*L2, 1)
+X9 <- rnorm(n, -7 - 7.2*X8 + 1.2*L2, 1)
+X10 <- rnorm(n, -1 - 6.7*X4 + 1.2*L3, 1)
+X11 <- rnorm(n, -10 - 0.6*X5 + 1.2*L3, 1)
+X12 <- rnorm(n, -1 + 5.2*X2 + 1.2*L2, 1)
+X13 <- rnorm(n, -1 - 4.1*X3 + 1.2*L1, 1)
+X14 <- rnorm(n, -1 + 7.5*X7 + 1.2*L2, 1)
+X15 <- rnorm(n, -1 - 5.8*X10 + 1.2*L3, 1)
 
-data <- cbind(X1,X2,X3,X4,X5,X6) ## L is not observed in data
+data <- cbind(X1,X2,X3,X4,X5,X6,X7,X8,X9,X10,X11,X12,X13,X14,X15) ## L is not observed in data
 
 indepTest <- gaussCItest ## specify the independence test
 suffStat <- list(C = cor(data), n = n) ## using the correlation matrix
 
-fci.est <- fci(suffStat, indepTest, alpha = 0.05, p = 6, verbose=TRUE) ## estimate a PAG
+fci.est <- fci(suffStat, indepTest, alpha = 0.05, p = 15, verbose=TRUE) ## estimate a PAG
 plot(fci.est)
 
 #pc.est <- pc(suffStat, indepTest, alpha = 0.05, p = 4, verbose=TRUE) ## estimate at CPDAG
@@ -335,7 +346,7 @@ change pdsep to "t-pdsep" (In progress) Mark biCC parameter done Need to check i
 Need to write a program to avoid some specific d-sep. (1)Type 1, conditioning set containing vertices in future tiers.
 
 ```{r}
-#**The elements of input 'tiers' should be greater than 0.
+
 ## only called in fci() [by default:  doPdsep=TRUE]
 tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = Inf,
                    pdsep.max = Inf, NAdelete = TRUE, unfVect = NULL,
@@ -369,6 +380,8 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
   ## ----------------------------------------------------------------------
   ## Author: Markus Kalisch, Date:  9 Dec 2009
   ## Modification: Diego Colombo; Martin Maechler; Joris Mooij
+  
+  cat("NOW ENTERING TPDSEP...", "\n")
   
   ##change1 starts
   ################################################# adding the step to guarantee the input of tiers parameter is valid.
@@ -405,12 +418,16 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
     storage.mode(amat) <- "integer" # (TRUE, FALSE) -->  (1, 0)
     #-------------change 5 starts
     ### INSERT 2 AT amat[j,i] WHEREVER THERE IS AN EDGE CONNECTING FUTURE at j TO PAST at i ###
+    cat("AMAT BEFORE for loop...", amat, "\n")
     for(i in 1:p) {
-      for(j in 1:i) if(amat[i,j] == 1 && tiers[j] > tiers[i]) { 
+      for(j in i:p) {
+        if(amat[i,j]==1) cat("tier i = ", tiers[i]," tier j = ", tiers[j], "\n")
+        if(amat[i,j] == 1 && tiers[j] > tiers[i]) { 
         amat[i,j] <- 2
         amat[j,i] <- 1
-      }
+      } }
     }
+    cat("AMAT AFTER for loop...", amat, "\n")
     #------------change5 ends
     
     ## Orient colliders
@@ -460,10 +477,10 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
             vertices_vec = seq(1, p)
             vertices_non = setdiff(vertices_vec, diff.set)  ##the step is to find vertices not in diff.set
             for(i in vertices_non) {  ##the step is to change the 'tiers' value(s) of the non-existing element to -1
-              tiers.diff.set[i] = -1
+              tiers.diff.set[i] = -Inf
             }
             
-            if(all(tiers.diff.set == -1)) {
+            if(all(sapply(tiers.diff.set, is.nan))) {
               next       ##if all elements are -1, that means all the vertices in conditioning set are in the future.
             }
             #need to consider what if all the values in vector tiers.diff.set are NULL.
@@ -618,7 +635,7 @@ tskeleton <- function (suffStat, indepTest, alpha, labels, p,
                        method = c("stable", "original"), m.max = Inf,
                        fixedGaps = NULL, fixedEdges = NULL, NAdelete = TRUE,
                        tiers = NULL, verbose = FALSE) {
-
+    cat("NOW ENTERING TSKELETON...", "\n")
      cl <- match.call()
      if (!missing(p))
         stopifnot(is.numeric(p), length(p <- as.integer(p)) == 1, p >= 2)
@@ -1033,6 +1050,11 @@ tfci <- function(suffStat, indepTest, alpha, labels, p,
     allPdsep <- pdsepRes$allPdsep
     n.edgetestsPD <- pdsepRes$n.edgetests
     max.ordPD <- pdsepRes$max.ord
+    
+    #--------code testing1 starts---------------#
+    cat("show me the n.edgetestsPD from tpdsep...", n.edgetestsPD, "\n")
+    #--------code testing1 starts---------------#
+    
     if (conservative || maj.rule) {
       if (verbose)
         cat("\nCheck v-structures conservatively\n=================================\n")
@@ -1064,11 +1086,11 @@ tfci <- function(suffStat, indepTest, alpha, labels, p,
       
       #------------change4 starts
       ### INSERT 2 AT amat[j,i] WHEREVER THERE IS AN EDGE CONNECTING FUTURE at j TO PAST at i ###
-      storage.mode(G) <- "integer" # (TRUE, FALSE) -->  (1, 0)
-      for(i in 1:p) for(j in 1:i) if(G[i,j]==1 && tiers[j] > tiers[i]) { 
-        G[i,j] <- 2
-        G[j,i] <- 1
-      }
+      #storage.mode(G) <- "integer" # (TRUE, FALSE) -->  (1, 0)
+      #for(i in 1:p) for(j in i:p) if(G[i,j]==1 && tiers[j] > tiers[i]) { 
+      #  G[i,j] <- 2
+      #  G[j,i] <- 1
+      #}
       ##################
       #------------change4 ends
     }
@@ -1082,8 +1104,26 @@ tfci <- function(suffStat, indepTest, alpha, labels, p,
   if (verbose)
     cat("\nDirect edges:\n=============\nUsing rules:", which(rules),
         "\nCompute collider:\n")
+  
+  #code test: check the G matrix for depicting:
+  #cat("G IN The End of tfci algorithm", G, "\n")
+  
   res <- udag2pag(pag = G, sepset, rules = rules, unfVect = tripleList,
                   jci = jci, contextVars = contextVars, verbose = verbose)
+  
+   #code test: check the res matrix for depicting:
+   #cat("res IN The End of tfci algorithm", res, "\n")
+  
+   #------------change5 starts
+      ### INSERT 2 AT amat[j,i] WHEREVER THERE IS AN EDGE CONNECTING FUTURE at j TO PAST at i ###
+      storage.mode(G) <- "integer" # (TRUE, FALSE) -->  (1, 0)
+      for(i in 1:p) for(j in i:p) if(G[i,j] == 1 && tiers[j] > tiers[i]) { 
+        res[i,j] <- 2
+        res[j,i] <- 1
+      }
+      ##################
+      #------------change5 ends
+  
   colnames(res) <- rownames(res) <- labels
   
   
@@ -1092,6 +1132,11 @@ tfci <- function(suffStat, indepTest, alpha, labels, p,
       max.ordPDSEP = as.integer(max.ordPD),
       n.edgetests = n.edgetestsSKEL, n.edgetestsPDSEP = n.edgetestsPD,
       sepset = sepset, pMax = pMax, allPdsep = allPdsep)
+  
+  #code test: check the amat matrix for depicting:
+  #cat("AMAT IN The End of tfci algorithm", res, "\n")
+  
+  
 } ## {fci}
 ```
 
@@ -1104,12 +1149,17 @@ tfci <- function(suffStat, indepTest, alpha, labels, p,
 ```{r}
 
 
-tfci.trial <- tfci(suffStat, indepTest, alpha = 0.05, p = 6, verbose=TRUE, tiers = c(3, 2, 2, 2, 2, 1)) ## estimate a PAG
-plot(tfci.trial)
+tfci.trial <- tfci(suffStat, indepTest, alpha = 0.05, p = 15, verbose=FALSE, tiers = c(1, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 7, 8)) ## estimate a PAG
+#plot(tfci.trial)
+
+tfci.trial@amat
 ```
 
 
 
+```{r}
+plot(tfci.trial)
+```
 
 
 
