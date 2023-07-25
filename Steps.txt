@@ -2,44 +2,52 @@
 
 1. fci() -> tfci():
 	1. The original function is 'tpc()' from package tpc.R. 
-	2. Change1: added a 'tier' parameter into the function. (916-952)
+	2. Change1: added a 'tier' parameter into the function. (85-121)
 	3. (In Progress) Change2: Whether it is necessary to always use one of the conservative and
- 		maj.rule. (line 972-976)
-	4. Change3: change the 'pdsep()' into 'tpdsep()' inside the program. (line 1022)
+ 		maj.rule. (line 141-145)
+	4. Change3: change the 'pdsep()' into 'tpdsep()' inside the program. (line 191)
 	6. Change4: (Line 1087-1095) maybe we can delete this part
-	7. Change5: Insert 2 at amat[i,j] wherever there is an edge connecting to future at j to past 		at i. Successfully fix the problem of future pointing to past in Change4. (Line 1117-1125)
+	7. Change5: Insert 2 at amat[i,j] wherever there is an edge connecting to future at j to past 
+		at i. Successfully fix the problem of future pointing to past in Change4. (Line 1117-1125)
+	8. Change6: change the 'tpc.cons.intern' into 'tpc.cons.intern' inside the program. (line 217 & 232)
 
 2. pdsep() -> tpdsep():
 	1. The original function is 'pdsep()' from package pcalg.R.
 	2. Change1: Added a 'tiers' parameter as a vector. Wrote a program to guarantee
-		the input of 'tiers' vector is valid. (Line 373-384)
+		the input of 'tiers' vector is valid. (Line 39-50)
 
 	3. Change2: In this step. It is trying to figure out the vertices which are not in the vector
  		diff.set. Create a vector named 'tiers.diff.set' as a proxy vector. Then, change the
  		tier values of the non-existing vertices to '-1' (tried changing to NULL, but a legal
  		syntax in R). An arrangement has been made for tier vector (NULL, NULL, NULL, ...,
  		NULL), if a 'tiers.diffset' consists of NULL elements only, it will be skipped (Line
- 		457-471).
+ 		127-141).
 
 
 	4. Change3: The program is to skip the situation that max tier values in 'diff.set' is 
 		greater than the maximum between vertex X and vertex Y. Since there are 3 different
  		'ord', the change should be applied to all the 3 different 'ord's'
-		(Change3-1: Line 508-514)
-		(Change3-2: Line 540-546)
-		(Change3-3: Line 570-576)
+		(Change3-1: Line 178-184)
+		(Change3-2: Line 210-216)
+		(Change3-3: Line 240-246)
 
 	*********(Not Sure if the change in this part is correct or Not Yet)**********
 	 
 	5. Change4: The 'biCC' parameter and the its related code in the function have been
- 		invalidated. (Line 474-488)
+ 		invalidated. (Line 144-158)
 
 	6. Change5: If j is future to I, and there is an edge between i and j, change the head from I
  		to j to 2, and mark of edge on i side to 1. The modification should be done before
- 		allpdsep <- lapply().(Line 406-414)
+ 		allpdsep <- lapply().(Line 72-84)
 
 
 3. tskeleton() was the original function from the package tpc.R. Its original version was 'skeleton()' from package pcalg.R.
+
+4. tcheckTriple() was the original function from the package tpc.R. Its original version was 'checkTriple' from package pcalg.R.
+
+5. tpc.cons.intern() was the original function from package tpc.R. Its original version was 'pc.cons.intern' from package pcalg.R.
+
+6. qreach() was the original function from pcalg.R.
 
 Current step: trying to test the algorithm using different test cases. Up to now, there isn't any problem of future pointing to past. 
 
