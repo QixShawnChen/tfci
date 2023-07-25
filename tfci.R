@@ -1,4 +1,4 @@
-
+library(pcalg)
 
 tfci <- function(suffStat, indepTest, alpha, labels, p,
                  skel.method = c("stable", "original"),
