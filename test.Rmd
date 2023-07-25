@@ -11,46 +11,101 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r}
-library(pcalg)
+source("tfci.R")
+source("tcheckTriple.R")
+source("tpc.cons.intern.R")
+source("tpdsep.R")
+source("tskeleton.R")
 ```
 
-
+1. Case1
 ```{r}
 set.seed(1234)
 n <- 10000
-X1 <- rnorm(n, 0 , .5)
-X4 <- rnorm(n, 0, 1.4)
-L1 <- rnorm(n, 0, 0.7)
-L2 <- rnorm(n, 0, 1.5)
-L3 <- rnorm(n, 0, 3.7)
-X2 <- rnorm(n, 1 + 0.9*X1 + 0.8*L1, 1)
-X3 <- rnorm(n, -3 + 2.8*X4 + 1.9*L2, 1)
-X5 <- rnorm(n, 1 - 2.8*X2 + 1.9, 1)
-X6 <- rnorm(n, -1 - 7.2*X4 + 8, 1)
-X7 <- rnorm(n, -6 - 2.2*X2 + 5.8*L2, 1)
-X8 <- rnorm(n, -1 - 9.1*X7 + 2.2, 1)
-X9 <- rnorm(n, -7 - 7.2*X8 + 1.2*L2, 1)
-X10 <- rnorm(n, -1 - 6.7*X4 + 7.2*L3, 1)
-X11 <- rnorm(n, -10 - 0.6*X5 + 1.2, 1)
-X12 <- rnorm(n, -1 + 5.2*X2 + 0.2, 1)
-X13 <- rnorm(n, -1 - 4.1*X3 + 1.9*L1, 1)
-X14 <- rnorm(n, -1 + 7.5*X7 + 1.2, 1)
-X15 <- rnorm(n, -1 - 5.8*X10 + 1*L3, 1)
 
-data <- cbind(X1,X2,X3,X4,X5,X6,X7,X8,X9,X10,X11,X12,X13,X14,X15) ## L is not observed in data
+L1 <- rnorm(n, 0, 1)
+L2 <- rnorm(n, 0, 1)
+
+X2 <- rnorm(n, 1.2*L1, 1)  #X2
+
+X3 <- rnorm(n, 2.7*L1, 1)  #X3
+
+X4 <- rnorm(n, 3.1*X2 - 1.6*L2, 1)  #X4
+
+X1 <- rnorm(n, 4.1*X3 - 2.5*L2, 1)  #X1 is in a future tier, where all else vertices are in the same previous tier to X1.
+
+data <- cbind(X2,X3,X4,X1) ## L is not observed in data
 
 indepTest <- gaussCItest ## specify the independence test
 suffStat <- list(C = cor(data), n = n) ## using the correlation matrix
 
-fci.est <- fci(suffStat, indepTest, alpha = 0.05, p = 15, verbose=TRUE) ## estimate a PAG
-plot(fci.est)
 
-#pc.est <- pc(suffStat, indepTest, alpha = 0.05, p = 4, verbose=TRUE) ## estimate at CPDAG
-#plot(pc.est)
-
-#score <- new("GaussL0penObsScore", data) ## define a score function
-
-#ges.fit <- ges(score, verbose=TRUE) ## estimate at CPDAG with GES
-#plot(ges.fit$essgraph)
+#Normal FCI result
+fci.est1 <- fci(suffStat, indepTest, alpha = 0.05, p = 4, verbose=TRUE) ## estimate a PAG
+plot(fci.est1)
 ```
 
+
+
+```{r}
+#TFCI result
+tfci.trial1 <- tfci(suffStat, indepTest, alpha = 0.05, p = 4, verbose=FALSE, tiers = c(1, 1, 1, 2)) ## estimate a PAG
+#plot(tfci.trial)
+
+tfci.trial1@amat
+```
+
+
+```{r}
+plot(tfci.trial1)
+```
+
+
+
+
+2. Case2
+```{r}
+set.seed(1234)
+n <- 10000
+X1 <- rnorm(n, 0, 1)  #X1
+X2 <- rnorm(n, 0, 1)  #Z1
+
+L1 <- rnorm(n, 0, 1)
+L2 <- rnorm(n, 0, 1)
+
+X3 <- rnorm(n, 1.7*L1 + 1.3*L2, 1)  #Y1
+
+
+X4 <- rnorm(n, -3 + 2.8*X1 + 1.9*L1, 1)  #X2
+X5 <- rnorm(n, -1 + 2.2*X2 + 2.3*L2, 1)  #Z2
+X6 <- rnorm(n, 0, 1)  #Y2
+
+
+
+data <- cbind(X1,X2,X3,X4,X5,X6) ## L is not observed in data
+
+
+indepTest <- gaussCItest ## specify the independence test
+suffStat <- list(C = cor(data), n = n) ## using the correlation matrix
+
+
+#Normal FCI result
+fci.est2 <- fci(suffStat, indepTest, alpha = 0.05, p = 6, verbose=TRUE) ## estimate a PAG
+plot(fci.est2)
+```
+
+
+
+```{r}
+#TFCI result
+tfci.trial2 <- tfci(suffStat, indepTest, alpha = 0.05, p = 6, verbose=FALSE, tiers = c(1, 1, 1, 2, 2, 2)) ## estimate a PAG
+#plot(tfci.trial)
+
+tfci.trial2@amat
+```
+
+
+
+```{r}
+plot(tfci.trial2)
+```
