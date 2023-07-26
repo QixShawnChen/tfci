@@ -8,8 +8,10 @@
 	4. Change3: change the 'pdsep()' into 'tpdsep()' inside the program. (line 191)
 	6. Change4: (Line 1087-1095) maybe we can delete this part
 	7. Change5: Insert 2 at amat[i,j] wherever there is an edge connecting to future at j to past 
-		at i. Successfully fix the problem of future pointing to past in Change4. (Line 1117-1125)
+		at i.  created a G1 as the proxy of G to modify the res matrix Successfully fix the 
+		problem of future pointing to past in Change4. (Line 269-278)
 	8. Change6: change the 'tpc.cons.intern' into 'tpc.cons.intern' inside the program. (line 217 & 232)
+	
 
 2. pdsep() -> tpdsep():
 	1. The original function is 'pdsep()' from package pcalg.R.
@@ -47,10 +49,10 @@
 
 5. tpc.cons.intern() was the original function from package tpc.R. Its original version was 'pc.cons.intern' from package pcalg.R.
 
-6. qreach() was the original function from pcalg.R.
 
-Current step: trying to test the algorithm using different test cases. Up to now, there isn't any problem of future pointing to past. 
+Current step: trying to test the algorithm using different test cases. Up to now, there hasn't been any problem of future pointing to past. 
+	Case1, Case2, and Case3 have been included in the test file. 
 
-Difficulties: 1. Hard to manipulate the occurrence of colliders to create special test cases efficiently. 
+Difficulties: 1. Guess there might be somewhere to modify to be satisfy the nature of tfci.
 
 

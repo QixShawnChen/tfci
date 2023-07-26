@@ -1,5 +1,10 @@
 library(pcalg)
 
+source("tcheckTriple.R")
+source("tpc.cons.intern.R")
+source("tpdsep.R")
+source("tskeleton.R")
+
 tfci <- function(suffStat, indepTest, alpha, labels, p,
                  skel.method = c("stable", "original"),
                  type = c("normal", "anytime", "adaptive"),

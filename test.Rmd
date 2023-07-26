@@ -12,10 +12,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 source("tfci.R")
-source("tcheckTriple.R")
-source("tpc.cons.intern.R")
-source("tpdsep.R")
-source("tskeleton.R")
 ```
 
 1. Case1
