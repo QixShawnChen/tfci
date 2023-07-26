@@ -75,6 +75,8 @@ tfci <- function(suffStat, indepTest, alpha, labels, p,
       message("No need to specify 'p', when 'labels' is given")
   }
   
+  ##Change1 starts
+  
   if (is.null(tiers)) {
     ## if no tiers are specified, everything is tier 1
     tiers <- rep(1, p)
@@ -83,11 +85,6 @@ tfci <- function(suffStat, indepTest, alpha, labels, p,
     if (!is.numeric(tiers)) {stop("'tiers' must be a numeric vector")}
     if (length(tiers) != p) {stop("length of 'tiers' does not match 'p' or length of 'labels'")}
   }
-  
-  
-  
-  
-  ##Change1 starts
   
   if (!is.null(context.all)) {
     if (is.character(context.all)) {
@@ -125,11 +122,7 @@ tfci <- function(suffStat, indepTest, alpha, labels, p,
   
   ##Change1 ends
   
-  
-  
-  
-  
-  
+
   ## Check that the type is a valid one
   type <- match.arg(type)
   if (type == "anytime" && m.max == Inf)
@@ -139,16 +132,6 @@ tfci <- function(suffStat, indepTest, alpha, labels, p,
   
   if (conservative && maj.rule)
     stop("Choose either conservative FCI or majority rule FCI")
-  
-  
-  
-  
-  #Change2 starts
-  #Do we really need this step?
-  if ((conservative) && (maj.rule))
-    stop("Choose either conservative FCI or majority rule FCI")
-  #Change2 ends
-  
   
   
   
@@ -207,10 +190,7 @@ tfci <- function(suffStat, indepTest, alpha, labels, p,
     allPdsep <- pdsepRes$allPdsep
     n.edgetestsPD <- pdsepRes$n.edgetests
     max.ordPD <- pdsepRes$max.ord
-    
-    #--------code testing1 starts---------------#
-    cat("show me the n.edgetestsPD from tpdsep...", n.edgetestsPD, "\n")
-    #--------code testing1 starts---------------#
+  
     
     if (conservative || maj.rule) {
       if (verbose)
@@ -240,16 +220,6 @@ tfci <- function(suffStat, indepTest, alpha, labels, p,
       tripleList <- nopdsep$unfTripl
       ## update the sepsets
       sepset <- nopdsep$sk@sepset
-      
-      #------------change4 starts
-      ### INSERT 2 AT amat[j,i] WHEREVER THERE IS AN EDGE CONNECTING FUTURE at j TO PAST at i ###
-      #storage.mode(G) <- "integer" # (TRUE, FALSE) -->  (1, 0)
-      #for(i in 1:p) for(j in i:p) if(G[i,j]==1 && tiers[j] > tiers[i]) { 
-      #  G[i,j] <- 2
-      #  G[j,i] <- 1
-      #}
-      ##################
-      #------------change4 ends
     }
   }
   if( !selectionBias )
@@ -267,22 +237,18 @@ tfci <- function(suffStat, indepTest, alpha, labels, p,
   
   
   #------------change5 starts
-  G1 <- G  #To keep G as a property, the G1 was created to be the proxy of G.
+  G1 <- G  ### G1 is a copy of G.
   ### INSERT 2 AT amat[j,i] WHEREVER THERE IS AN EDGE CONNECTING FUTURE at j TO PAST at i ###
+  ### THIS IS THEN TAKEN AS AN INPUT TO udag2pag() IN NEXT STEP
   storage.mode(G1) <- "numeric" # (TRUE, FALSE) -->  (1, 0)
   for(i in 1:p) for(j in i:p) if(G1[i,j] == 1 && tiers[j] > tiers[i]) { 
     G1[i,j] <- 2
     G1[j,i] <- 1
   }
-  ##################
   #------------change5 ends
   
   res <- udag2pag(pag = G1, sepset, rules = rules, unfVect = tripleList,
                   jci = jci, contextVars = contextVars, verbose = verbose)
-  
-  #code test: check the res matrix for depicting:
-  #cat("res IN The End of tfci algorithm", res, "\n")
-  
   
   
   colnames(res) <- rownames(res) <- labels
@@ -293,9 +259,6 @@ tfci <- function(suffStat, indepTest, alpha, labels, p,
       max.ordPDSEP = as.integer(max.ordPD),
       n.edgetests = n.edgetestsSKEL, n.edgetestsPDSEP = n.edgetestsPD,
       sepset = sepset, pMax = pMax, allPdsep = allPdsep)
-  
-  #code test: check the amat matrix for depicting:
-  #cat("AMAT IN The End of tfci algorithm", res, "\n")
   
   
 } ## {fci}
