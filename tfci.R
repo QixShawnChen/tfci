@@ -267,7 +267,7 @@ tfci <- function(suffStat, indepTest, alpha, labels, p,
   
   
   #------------change5 starts
-  G1 <- G
+  G1 <- G  #To keep G as a property, the G1 was created to be the proxy of G.
   ### INSERT 2 AT amat[j,i] WHEREVER THERE IS AN EDGE CONNECTING FUTURE at j TO PAST at i ###
   storage.mode(G1) <- "numeric" # (TRUE, FALSE) -->  (1, 0)
   for(i in 1:p) for(j in i:p) if(G1[i,j] == 1 && tiers[j] > tiers[i]) { 
