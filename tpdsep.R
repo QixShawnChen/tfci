@@ -34,7 +34,7 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
   ## Author: Markus Kalisch, Date:  9 Dec 2009
   ## Modification: Diego Colombo; Martin Maechler; Joris Mooij
   
-  cat("NOW ENTERING TPDSEP...", "\n")
+  ## cat("NOW ENTERING TPDSEP...", "\n")
   
   ##change1 starts
   ################################################# adding the step to guarantee the input of tiers parameter is valid.
@@ -69,9 +69,8 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
     amat <- G
     ind <- which(G, arr.ind = TRUE)       
     storage.mode(amat) <- "integer" # (TRUE, FALSE) -->  (1, 0)
-    #-------------change 5 starts
+    #-------------change2 starts
     ### INSERT 2 AT amat[j,i] WHEREVER THERE IS AN EDGE CONNECTING FUTURE at j TO PAST at i ###
-    cat("AMAT BEFORE for loop...", amat, "\n")
     for(i in 1:p) {
       for(j in i:p) {
         if(amat[i,j]==1) cat("tier i = ", tiers[i]," tier j = ", tiers[j], "\n")
@@ -80,8 +79,7 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
           amat[j,i] <- 1
         } }
     }
-    cat("AMAT AFTER for loop...", amat, "\n")
-    #------------change5 ends
+    #------------change2 ends
     
     ## Orient colliders
     if (verbose) cat("\nCompute collider:\n")
@@ -124,7 +122,7 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
             diff.set <- setdiff(tf, adj.x)
             
             
-            ##------------ change2 starts
+            ##------------ change3 starts
             
             tiers.diff.set = tiers
             vertices_vec = seq(1, p)
@@ -138,7 +136,7 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
             }
             #need to consider what if all the values in vector tiers.diff.set are NULL.
             
-            ##------------ change2 ends
+            ##------------ change3 ends
             
             
             ## bi-connected components
@@ -175,13 +173,13 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
                 if (ord == 1) {
                   for (S in diff.set) {
                     
-                    ##---------------------  change3—1 starts
+                    ##---------------------  change5—1 starts
                     
                     if(max(tiers.diff.set) > max(tiers[x], tiers[y])) { #skip the situation when max tiers in diff.set is greater than the maximum of tiers values of vertex X and vertex Y.
                       next
                     }
                     
-                    ##---------------------  change3-1 ends
+                    ##---------------------  change5-1 ends
                     
                     pval <- indepTest(x, y, S, suffStat)
                     n.edgetests[ord + 1] <- n.edgetests[ord + 1] + 1
@@ -207,13 +205,13 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
                       if (!all(S %in% adj.x)) {
                         n.edgetests[ord + 1] <- n.edgetests[ord + 1] + 1
                         
-                        ##---------------------  change3-2 starts
+                        ##---------------------  change5-2 starts
                         
                         if(max(tiers.diff.set) > max(tiers[x], tiers[y])) { #skip the situation when max tiers in diff.set is                               greater than the maximum of tiers values of vertex X and vertex Y.
                           next
                         }
                         
-                        ##---------------------  change3-2 ends
+                        ##---------------------  change5-2 ends
                         
                         pval <- indepTest(x, y, S, suffStat)
                         if (is.na(pval))
@@ -237,13 +235,13 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
                       S <- tmp.combn[, k]
                       n.edgetests[ord + 1] <- n.edgetests[ord + 1] + 1
                       
-                      ##---------------------  change3-3 starts
+                      ##---------------------  change5-3 starts
                       
                       if(max(tiers.diff.set) > max(tiers[x], tiers[y])) { #skip the situation when max tiers in diff.set is                           greater than the maximum of tiers values of vertex X and vertex Y.
                         next
                       }
                       
-                      ##---------------------  change3-3 ends
+                      ##---------------------  change5-3 ends
                       
                       pval <- indepTest(x, y, S, suffStat)
                       if (is.na(pval))
