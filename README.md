@@ -1,6 +1,6 @@
 # temporal-fast-casual-inference-research-project
 
-Authors: Qixian Chen and Daniel Malinsky, Columbia University.
+Authors: Qixiang Chen and Daniel Malinsky, Columbia University.
 
 This is an R implementation of the FCI algorithm with tiered background knowledge.
 
