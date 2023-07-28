@@ -9,7 +9,6 @@ It is based heavily on the existing code from R packages 'pcalg' and 'tpc' (http
 See also implementation of FCI with tiered background knowledge in TETRAD (written in Java: https://github.com/cmu-phil/tetrad).
 
 Syntax: 
-> source("tfci.R")
 > tfci(suffStat, indepTest, alpha = .05, p = 4, verbose=FALSE, tiers = c(1, 1, 1, 2)) ## see test examples
 
 ** Note: tiers must be specified in increasing order (so input variables in data matrix must be specified in increasing tier order).
