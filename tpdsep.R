@@ -175,7 +175,7 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
                     
                     ##---------------------  change5—1 starts
                     
-                    if(max(tiers.diff.set[[S]]) > max(tiers[x], tiers[y])) { #skip the situation when max tiers in diff.set is greater than the maximum of tiers values of vertex X and vertex Y.
+                    if(max(tiers.diff.set[S]) > max(tiers[x], tiers[y])) { #skip the situation when max tiers in diff.set is greater than the maximum of tiers values of vertex X and vertex Y.
                       next
                     }
                     
@@ -207,7 +207,7 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
                         
                         ##---------------------  change5-2 starts
                         
-                        if(max(tiers.diff.set[[S]]) > max(tiers[x], tiers[y])) { #skip the situation when max tiers in diff.set is                               greater than the maximum of tiers values of vertex X and vertex Y.
+                        if(max(tiers.diff.set[S]) > max(tiers[x], tiers[y])) { #skip the situation when max tiers in diff.set is                               greater than the maximum of tiers values of vertex X and vertex Y.
                           next
                         }
                         
@@ -237,7 +237,7 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
                       
                       ##---------------------  change5-3 starts
                       
-                      if(max(tiers.diff.set[[S]]) > max(tiers[x], tiers[y])) { #skip the situation when max tiers in diff.set is                           greater than the maximum of tiers values of vertex X and vertex Y.
+                      if(max(tiers.diff.set[S]) > max(tiers[x], tiers[y])) { #skip the situation when max tiers in diff.set is                           greater than the maximum of tiers values of vertex X and vertex Y.
                         next
                       }
                       
