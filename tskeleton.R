@@ -4,7 +4,7 @@ tskeleton <- function (suffStat, indepTest, alpha, labels, p,
                        method = c("stable", "original"), m.max = Inf,
                        fixedGaps = NULL, fixedEdges = NULL, NAdelete = TRUE,
                        tiers = NULL, verbose = FALSE) {
-  cat("NOW ENTERING TSKELETON...", "\n")
+  
   cl <- match.call()
   if (!missing(p))
     stopifnot(is.numeric(p), length(p <- as.integer(p)) == 1, p >= 2)
