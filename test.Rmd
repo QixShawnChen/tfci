@@ -27,11 +27,11 @@ X3 <- rnorm(n, 5.5 + 2.7*L1, 1)  #X3
 
 L2 <- rnorm(n, 1.9 + 2.8*X3, 1)
 
-X4 <- rnorm(n, 3.1*X2 + 1.6*L2, 1)  #X4
+X1 <- rnorm(n, 3.1*X2 + 1.6*L2, 1)  #X1
 
-X1 <- rnorm(n, 4.1*X3 - 2.5*L2, 1)  #X1 is in a future tier, where all else vertices are in the same previous tier to X1.
+X4 <- rnorm(n, 4.1*X3 - 2.5*L2, 1)  #X4 is in a future tier, where all other vertices are in (the same) prior tier.
 
-data <- cbind(X2,X3,X4,X1) ## L is not observed in data
+data <- cbind(X1,X2,X3,X4) ## L is not observed in data
 
 indepTest <- gaussCItest ## specify the independence test
 suffStat <- list(C = cor(data), n = n) ## using the correlation matrix
@@ -54,7 +54,7 @@ tfci.trial1@amat
 
 
 ```{r}
-plot(tfci.trial1)
+plot(tfci.trial1) ## the result should have a bidirected edge from X4 <-> X1 (across tiers, future to past) due to L2
 ```
 
 
