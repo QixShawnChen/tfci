@@ -73,11 +73,11 @@ tpdsep <- function (skel, suffStat, indepTest, p, sepset, alpha, pMax, m.max = I
     ### INSERT 2 AT amat[j,i] WHEREVER THERE IS AN EDGE CONNECTING FUTURE at j TO PAST at i ###
     for(i in 1:p) {
       for(j in i:p) {
-        if(amat[i,j]==1) cat("tier i = ", tiers[i]," tier j = ", tiers[j], "\n")
         if(amat[i,j] == 1 && tiers[j] > tiers[i]) { 
           amat[i,j] <- 2
           amat[j,i] <- 1
-        } }
+        } 
+      }
     }
     #------------change2 ends
     
